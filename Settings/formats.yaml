@@ -1,0 +1,20 @@
+# Accepted image formats
+image_formats: - 'bmp'
+               - 'jpg'
+               - 'jpeg'
+               - 'png'
+               - 'tif'
+               - 'tiff'
+               - 'dng'
+               - 'webp'
+               - 'mpo'
+
+# Accepted video formats
+video_formats: - 'mov'
+               - 'avi'
+               - 'mp4'
+               - 'mpg'
+               - 'mpeg'
+               - 'm4v'
+               - 'wmv'
+               - 'mkv'
