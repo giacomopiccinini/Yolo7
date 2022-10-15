@@ -1,3 +1,5 @@
+import torch
+import requests
 from pathlib import Path
 
 def download_model(model_path):
