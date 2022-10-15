@@ -28,6 +28,8 @@ if __name__ == "__main__":
     from Code.Loaders.LoadImages import LoadImages
     from Code.Loaders.LoadStreams import LoadStreams
 
+    from Code.Techniques.NMS.nms import non_max_suppression
+
     # Set up logging
     logging.basicConfig(level=logging.NOTSET)
 
@@ -87,7 +89,6 @@ if __name__ == "__main__":
 
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
-        t3 = time_synchronized()
 
         # Apply Classifier
         if classify:
