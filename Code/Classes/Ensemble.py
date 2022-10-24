@@ -49,7 +49,7 @@ class Ensemble(nn.ModuleList):
         for weight in weights if isinstance(weights, list) else [weights]:
 
             # Download pretrained model if not present
-            self.download(weight)
+            download(weight)
 
             # Load checkpoint in the map location
             checkpoint = torch.load(weight, map_location=map_location)
@@ -67,43 +67,43 @@ class Ensemble(nn.ModuleList):
             return model
 
         
-    def download(self, model_path:str) -> None:
+def download(model_path:str) -> None:
 
-        """ Download pretrained weights from the Internet"""
+    """ Download pretrained weights from the Internet"""
 
-        # Construct Path object
-        file = Path(model_path)
+    # Construct Path object
+    file = Path(model_path)
 
-        # If the model is not saved locally
-        if not file.exists():
+    # If the model is not saved locally
+    if not file.exists():
 
-            # Interrogate GitHub API on releases
-            api_response = requests.get("https://api.github.com/repos/WongKinYiu/yolov7/releases").json()[0]
+        # Interrogate GitHub API on releases
+        api_response = requests.get("https://api.github.com/repos/WongKinYiu/yolov7/releases").json()[0]
 
-            # Retrieve assets (i.e. models)
-            assets = [asset['name'] for asset in api_response['assets']]
+        # Retrieve assets (i.e. models)
+        assets = [asset['name'] for asset in api_response['assets']]
 
-            # Retrieve version tag
-            tag = api_response['tag_name']
+        # Retrieve version tag
+        tag = api_response['tag_name']
 
-            # Name of the file (with extension) i.e. removes path info
-            name = file.name
+        # Name of the file (with extension) i.e. removes path info
+        name = file.name
 
-            if name in assets:
+        if name in assets:
 
-                # Try downloading model from GitHub
-                try:  
+            # Try downloading model from GitHub
+            try:  
 
-                    # Construct download URL
-                    url = f'https://github.com/WongKinYiu/yolov7/releases/download/{tag}/{name}'
+                # Construct download URL
+                url = f'https://github.com/WongKinYiu/yolov7/releases/download/{tag}/{name}'
 
-                    print(f'Downloading {url} to {file}...')
+                print(f'Downloading {url} to {file}...')
 
-                    # Download
-                    torch.hub.download_url_to_file(url, file)
+                # Download
+                torch.hub.download_url_to_file(url, file)
 
-                except Exception as e:  
-                    
-                    # Print exception if something goes wrong
-                    print(f'Download error: {e}')
+            except Exception as e:  
+                
+                # Print exception if something goes wrong
+                print(f'Download error: {e}')
             
