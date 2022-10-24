@@ -7,10 +7,10 @@ def parse():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--device", const="GPU", default="GPU", nargs="?", typre=str, choices=["GPU", "CPU"], help="Insert device type")
+    parser.add_argument("--device", const="GPU", default="GPU", nargs="?", type=str, choices=["GPU", "CPU"], help="Insert device type")
 
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='Input', help='source')  # file/folder, 0 for webcam
 
 
 
