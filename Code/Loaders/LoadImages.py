@@ -1,7 +1,9 @@
 import cv2
+import numpy as np
 from pathlib import Path
 from yaml import safe_load
 from pymediainfo import MediaInfo
+from Code.Techniques.Rescaling.rescale import letterbox
 
 
 class LoadImages:
@@ -52,6 +54,7 @@ class LoadImages:
         # Store flag indicating if a file is a video
         self.video_flag = [False] * len(images) + [True] * len(videos)
 
+        # Store stride and mode
         self.stride = stride
         self.mode = "image"
 
@@ -162,55 +165,16 @@ class LoadImages:
             # Check that the image exists
             assert image_BGR is not None, f"Can't read the image at {path}"
 
-        # Padded resize
-        img = letterbox(img0, self.img_size, stride=self.stride)[0]
+        # Resize to letterbox (i.e. with padding)
+        image = letterbox(image_BGR, new_shape=(640, 640), stride=self.stride)[0]
 
-        # Convert
-        img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
-        img = np.ascontiguousarray(img)
+        # Convert BGR to RGB
+        image_RGB = image[:, :, ::-1]
 
-        return path, img, image_BGR, self.capture
+        # Convert to channel first
+        image_RGB = image_RGB.transpose(2, 0, 1)
 
+        # Contiguous array
+        image_RGB = np.ascontiguousarray(image_RGB)
 
-def letterbox(
-    image,
-    new_shape=(640, 640),
-    color=(114, 114, 114),
-    auto=True,
-    scaleFill=False,
-    scaleup=True,
-    stride=32,
-):
-
-    """Resize and pad image while meeting stride-multiple constraints"""
-
-    # Get current shape of image
-    shape = image.shape[:2]
-
-    # Scale ratio (new / old)
-    r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-    if not scaleup:  # only scale down, do not scale up (for better test mAP)
-        r = min(r, 1.0)
-
-    # Compute padding
-    ratio = r, r  # width, height ratios
-    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
-    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
-    if auto:  # minimum rectangle
-        dw, dh = np.mod(dw, stride), np.mod(dh, stride)  # wh padding
-    elif scaleFill:  # stretch
-        dw, dh = 0.0, 0.0
-        new_unpad = (new_shape[1], new_shape[0])
-        ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
-
-    dw /= 2  # divide padding into 2 sides
-    dh /= 2
-
-    if shape[::-1] != new_unpad:  # resize
-        img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
-    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    img = cv2.copyMakeBorder(
-        img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color
-    )  # add border
-    return img, ratio, (dw, dh)
+        return path, image_RGB, image_BGR, self.capture
