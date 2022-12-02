@@ -4,10 +4,11 @@ import torch.nn as nn
 from Code.Classes.Ensemble import Ensemble
 from Code.Utilities.download_model import download_model
 
+
 def load_model(weights, map_location=None) -> nn:
 
-    """ Load an ensemble model with weights 
-    
+    """Load an ensemble model with weights
+
     weights      = name of weights to be loaded
     map_location = GPU or CPU, where to store tensors
 
@@ -26,8 +27,8 @@ def load_model(weights, map_location=None) -> nn:
         ckpt = torch.load(weight, map_location=map_location)
 
         # Append weight to model
-        model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval()) 
-    
+        model.append(ckpt["ema" if ckpt.get("ema") else "model"].float().fuse().eval())
+
     # Compatibility updates
     for m in model.modules():
         if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU]:
@@ -36,11 +37,11 @@ def load_model(weights, map_location=None) -> nn:
             m.recompute_scale_factor = None  # torch 1.11.0 compatibility
         elif type(m) is Conv:
             m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
-    
+
     if len(model) == 1:
         return model[-1]  # return model
     else:
-        print('Ensemble created with %s\n' % weights)
-        for k in ['names', 'stride']:
+        print("Ensemble created with %s\n" % weights)
+        for k in ["names", "stride"]:
             setattr(model, k, getattr(model[-1], k))
         return model  # return ensemble

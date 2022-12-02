@@ -4,7 +4,7 @@ from glob import glob
 
 def load_settings():
 
-    """ Load all .yaml files """
+    """Load all .yaml files"""
 
     # Find all setting files
     files = glob("Settings/*.yaml")

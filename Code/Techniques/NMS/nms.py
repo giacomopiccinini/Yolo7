@@ -2,7 +2,15 @@ import torch
 import torchvision
 import numpy as np
 
-def non_max_suppression(prediction, confidence_threshold=0.25, iou_threshold=0.45, classes=None, agnostic=False, multi_label=False):
+
+def non_max_suppression(
+    prediction,
+    confidence_threshold=0.25,
+    iou_threshold=0.45,
+    classes=None,
+    agnostic=False,
+    multi_label=False,
+):
     """
     Runs Non-Maximum Suppression (NMS) on inference results
 
@@ -11,38 +19,42 @@ def non_max_suppression(prediction, confidence_threshold=0.25, iou_threshold=0.4
     """
 
     # Retrieve number of classes from prediction
-    number_of_classes = prediction.shape[2] - 5 
+    number_of_classes = prediction.shape[2] - 5
 
     # Candidates that surpass a confidence threshold
     candidates = prediction[..., 4] > confidence_threshold
 
     # Settings
-    max_box_width_height  = 4096 # Maximum box width and height in pixels
+    max_box_width_height = 4096  # Maximum box width and height in pixels
 
     max_detections = 300  # Maximum number of detections per image
 
     max_nms = 30000  # Maximum number of boxes into torchvision.ops.nms()
 
     # Ensure multi labelling is indeed possible
-    multi_label &= number_of_classes > 1 
+    multi_label &= number_of_classes > 1
 
     # Initialise output (to be filled)
     output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
 
-    for index, image in enumerate(prediction): 
+    for index, image in enumerate(prediction):
 
-        image = image[candidates[index]]  # confidence
+        # Retain valid candidates
+        image = image[candidates[index]]
 
         # If none remain process next image
         if not image.shape[0]:
             continue
 
-        # Compute confidence 
+        # Compute confidence
         if number_of_classes == 1:
-            image[:, 5:] = image[:, 4:5] # for models with one class, cls_loss is 0 and cls_conf is always 0.5,
-                                 # so there is no need to multiplicate.
+            image[:, 5:] = image[
+                :, 4:5
+            ]  # for models with one class, cls_loss is 0 and cls_conf is always 0.5, no need to multiplicate
         else:
-            image[:, 5:] *= image[:, 4:5]  # conf = obj_conf * cls_conf
+            image[:, 5:] *= image[
+                :, 4:5
+            ]  # Overall confidence, is confidence_in_object * confidence_in_class
 
         # Create box converting from (center x, center y, width, height) to (x1, y1, x2, y2)
         box = xywh2xyxy(image[:, :4])
@@ -60,30 +72,30 @@ def non_max_suppression(prediction, confidence_threshold=0.25, iou_threshold=0.4
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
 
         # Check boxes number
-        n_boxes = image.shape[0]  
+        n_boxes = image.shape[0]
 
         # If no boxes, continue
-        if not n_boxes: 
+        if not n_boxes:
             continue
-        # Else, if maximum number of boxes is achieved 
-        elif n_boxes > max_nms:  
+        # Else, if maximum number of boxes is achieved
+        elif n_boxes > max_nms:
             # Sort boxes by confidence, and take the first max_nms
             image = image[image[:, 4].argsort(descending=True)[:max_nms]]
 
         # Get classes
-        c = x[:, 5:6] * (0 if agnostic else max_box_width_height)  
+        c = x[:, 5:6] * (0 if agnostic else max_box_width_height)
 
         # Get boxes, with offset by class
-        boxes= x[:, :4] + c 
+        boxes = x[:, :4] + c
 
         # Get scores
-        scores =  x[:, 4]
+        scores = x[:, 4]
 
         # Perform non-maximum suppression (NMS) on the boxes according to their intersection-over-union (IoU)
-        i = torchvision.ops.nms(boxes, scores, iou_threshold)  
+        i = torchvision.ops.nms(boxes, scores, iou_threshold)
 
         # If too many detections
-        if i.shape[0] > max_detections:  
+        if i.shape[0] > max_detections:
             # Restrict to allowed number
             i = i[:max_detections]
 
@@ -93,11 +105,9 @@ def non_max_suppression(prediction, confidence_threshold=0.25, iou_threshold=0.4
     return output
 
 
-
-
 def xywh2xyxy(x):
-    
-    """ Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right """
+
+    """Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right"""
 
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
 
