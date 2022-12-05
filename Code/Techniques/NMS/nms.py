@@ -18,24 +18,29 @@ def non_max_suppression(
          list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     """
 
-    # Retrieve number of classes from prediction
+    # The result of prediction is:
+    # [x, y, w, h] (0,1,2,3)
+    # confidence in detection (4)
+    # confidence in class (>= 5)
+
+    # Retrieve number of classes from prediction (subtract box coordinates and confidence)
     number_of_classes = prediction.shape[2] - 5
 
-    # Candidates that surpass a confidence threshold
+    # Select candidates that surpass a confidence threshold
     candidates = prediction[..., 4] > confidence_threshold
 
-    # Settings
-    max_box_width_height = 4096  # Maximum box width and height in pixels
+    # Fix a few settings
+    # Maximum box width and height in pixels
+    max_box_width_height = 4096
 
-    max_detections = 300  # Maximum number of detections per image
+    # Maximum number of detections per image
+    max_detections = 300
 
-    max_nms = 30000  # Maximum number of boxes into torchvision.ops.nms()
+    # Maximum number of boxes into torchvision.ops.nms()
+    max_nms = 30000
 
     # Ensure multi labelling is indeed possible
     multi_label &= number_of_classes > 1
-
-    # Initialise output (to be filled)
-    output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
 
     for index, image in enumerate(prediction):
 
@@ -48,30 +53,50 @@ def non_max_suppression(
 
         # Compute confidence
         if number_of_classes == 1:
-            image[:, 5:] = image[
-                :, 4:5
-            ]  # for models with one class, cls_loss is 0 and cls_conf is always 0.5, no need to multiplicate
+            # For models with one class, cls_loss is 0 and cls_conf is always 0.5, no need to multiplicate
+            image[:, 5:] = image[:, 4:5]
         else:
-            image[:, 5:] *= image[
-                :, 4:5
-            ]  # Overall confidence, is confidence_in_object * confidence_in_class
+            # Overall confidence, is confidence_in_object * confidence_in_class
+            image[:, 5:] *= image[:, 4:5]
 
-        # Create box converting from (center x, center y, width, height) to (x1, y1, x2, y2)
-        box = xywh2xyxy(image[:, :4])
+        # Create boxes converting from (center x, center y, width, height) to (x1, y1, x2, y2)
+        boxes = xywh2xyxy(image[:, :4])
 
         # Detections matrix nx6 (xyxy, conf, cls)
         if multi_label:
-            i, j = (x[:, 5:] > confidence_threshold).nonzero(as_tuple=False).T
-            x = torch.cat((box[i], x[i, j + 5, None], j[:, None].float()), 1)
-        else:  # best class only
-            conf, j = x[:, 5:].max(1, keepdim=True)
-            x = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
+
+            # Fetch indices and classes of valid detections
+            detection_index, detected_class = (
+                (image[:, 5:] > confidence_threshold).nonzero(as_tuple=False).T
+            )
+
+            # Fix detected class by adding the offset due to box + confidence
+            detected_class += 5
+
+            # Concatenate
+            image = torch.cat(
+                (boxes[detection_index], image[detection_index, detected_class, None]),
+                detected_class[:, None].float(),
+                dim=1,
+            )
+
+        else:
+
+            # Best class only
+            confidences, detected_classes = image[:, 5:].max(1, keepdim=True)
+
+            # Concatenate
+            image = torch.cat(
+                (boxes, detected_classes, detected_classes.float()), dim=1
+            )[confidences.view(-1) > confidence_threshold]
 
         # Filter by class
         if classes is not None:
-            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            image = image[
+                (image[:, 5:6] == torch.tensor(classes, device=image.device)).any(1)
+            ]
 
-        # Check boxes number
+        # Fetch number of detected boxes
         n_boxes = image.shape[0]
 
         # If no boxes, continue
@@ -83,13 +108,13 @@ def non_max_suppression(
             image = image[image[:, 4].argsort(descending=True)[:max_nms]]
 
         # Get classes
-        c = x[:, 5:6] * (0 if agnostic else max_box_width_height)
+        c = image[:, 5:6] * (0 if agnostic else max_box_width_height)
 
         # Get boxes, with offset by class
-        boxes = x[:, :4] + c
+        boxes = image[:, :4] + c
 
         # Get scores
-        scores = x[:, 4]
+        scores = image[:, 4]
 
         # Perform non-maximum suppression (NMS) on the boxes according to their intersection-over-union (IoU)
         i = torchvision.ops.nms(boxes, scores, iou_threshold)
@@ -98,6 +123,9 @@ def non_max_suppression(
         if i.shape[0] > max_detections:
             # Restrict to allowed number
             i = i[:max_detections]
+
+        # Initialise output (to be filled)
+        output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
 
         # Write to output
         output[index] = image[i]
