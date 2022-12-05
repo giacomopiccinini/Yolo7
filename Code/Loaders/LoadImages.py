@@ -157,7 +157,7 @@ class LoadImages:
         # If we have an image
         else:
             # Read BGR image
-            image_BGR = cv2.imread(path, -1)
+            image_BGR = cv2.imread(path.__str__(), -1)
 
             # Increase counter
             self.count += 1

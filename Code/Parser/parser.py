@@ -1,5 +1,4 @@
 import argparse
-from inspect import ArgSpec
 
 
 def parse():
@@ -26,14 +25,14 @@ def parse():
         help="model.pt path(s)",
     )
     parser.add_argument(
-        "--source", type=str, default="Input", help="source"
-    )  # file/folder, 0 for webcam
+        "--source", type=str, default="Input", help="Source of images/videos"
+    )
 
     parser.add_argument(
-        "--img-size", type=int, default=640, help="inference size (pixels)"
+        "--img-size", type=int, default=640, help="Inference size (pixels)"
     )
     parser.add_argument(
-        "--conf-thres", type=float, default=0.25, help="object confidence threshold"
+        "--conf-thres", type=float, default=0.25, help="Object confidence threshold"
     )
     parser.add_argument(
         "--iou-thres", type=float, default=0.45, help="IOU threshold for NMS"

@@ -1,7 +1,12 @@
 import torch
 import torch.nn as nn
 import requests
+import logging
 from pathlib import Path
+
+# Logging configuration
+logging.basicConfig(level=logging.NOTSET)
+log = logging.getLogger(__name__)
 
 
 class Ensemble(nn.ModuleList):
@@ -104,7 +109,7 @@ def download(model_path: str) -> None:
                 # Construct download URL
                 url = f"https://github.com/WongKinYiu/yolov7/releases/download/{tag}/{name}"
 
-                print(f"Downloading {url} to {file}...")
+                log.info(f"Downloading {url} to {file}...")
 
                 # Download
                 torch.hub.download_url_to_file(url, file)
@@ -112,4 +117,4 @@ def download(model_path: str) -> None:
             except Exception as e:
 
                 # Print exception if something goes wrong
-                print(f"Download error: {e}")
+                log.error(f"Download error: {e}")
