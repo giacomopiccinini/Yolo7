@@ -30,6 +30,7 @@ def non_max_suppression(
     candidates = prediction[..., 4] > confidence_threshold
 
     # Fix a few settings
+
     # Maximum box width and height in pixels
     max_box_width_height = 4096
 
@@ -42,23 +43,27 @@ def non_max_suppression(
     # Ensure multi labelling is indeed possible
     multi_label &= number_of_classes > 1
 
-    for index, image in enumerate(prediction):
+    for index, boxes_features in enumerate(prediction):
 
-        # Retain valid candidates
-        image = image[candidates[index]]
+        # Retain valid candidates for bounding boxes
+        boxes_features = boxes_features[candidates[index]]
 
-        # If none remain process next image
-        if not image.shape[0]:
+        # If no boxes are detected, move on
+        if not boxes_features.shape[0]:
             continue
 
         # Compute confidence
         if number_of_classes == 1:
-            # For models with one class, cls_loss is 0 and cls_conf is always 0.5, no need to multiplicate
-            image[:, 5:] = image[:, 4:5]
+            # For models with one class, class_loss is 0 and class_confidence is always 0.5, no need to multiplicate
+            # Propagate detection confidence to all classes
+            boxes_features[:, 5:] = boxes_features[:, 4:5]
         else:
             # Overall confidence, is confidence_in_object * confidence_in_class
             image[:, 5:] *= image[:, 4:5]
 
+        # Extract boxes coordinates
+        boxes_coordinates = boxes_features[:, :4]
+        
         # Create boxes converting from (center x, center y, width, height) to (x1, y1, x2, y2)
         boxes = xywh2xyxy(image[:, :4])
 
