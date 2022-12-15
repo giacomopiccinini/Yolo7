@@ -74,3 +74,45 @@ def letterbox(
     )
 
     return image, ratio, (dw, dh)
+
+
+
+def rescale_coordinates(small_shape, original_shape, coordinates, ratio_pad=None):
+    
+    """ Rescale box coordinates from the small standard shape of YOLO
+    to the original """
+    
+    print(small_shape)
+    print(original_shape)
+    
+    # Rescale coordinates
+    if ratio_pad is None:  
+        # Compute gain
+        gain = min(original_shape[0] / small_shape[0], original_shape[1] / small_shape[1]) 
+        
+        # Compute pad
+        pad = (original_shape[1] - small_shape[1] * gain) / 2, (original_shape[0] - small_shape[0] * gain) / 2  
+        
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+
+    # Remove padding
+    coordinates[:, [0, 2]] -= pad[0] 
+    coordinates[:, [1, 3]] -= pad[1] 
+    
+    # Rescale
+    coordinates[:, :4] /= gain
+    
+    clip_coords(coordinates, small_shape)
+    
+    return coordinates
+
+
+def clip_coords(boxes, image_shape):
+    
+    # Clip bounding xyxy bounding boxes to image shape (height, width)
+    boxes[:, 0].clamp_(0, image_shape[1])  # x1
+    boxes[:, 1].clamp_(0, image_shape[0])  # y1
+    boxes[:, 2].clamp_(0, image_shape[1])  # x2
+    boxes[:, 3].clamp_(0, image_shape[0])  # y2
