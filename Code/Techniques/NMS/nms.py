@@ -91,9 +91,6 @@ def non_max_suppression(
             confidences, detected_classes = boxes_features[:, 5:].max(1, keepdim=True)
             
             # Concatenate
-            # boxes_features = torch.cat(
-            #     (boxes, detected_classes, confidences.float()), dim=1
-            # )[confidences.view(-1) > confidence_threshold]
             boxes_features = torch.cat(
                 (boxes, confidences.float(), detected_classes), dim=1
             )[confidences.view(-1) > confidence_threshold]
