@@ -82,9 +82,6 @@ def rescale_coordinates(small_shape, original_shape, coordinates, ratio_pad=None
     """ Rescale box coordinates from the small standard shape of YOLO
     to the original """
     
-    print(small_shape)
-    print(original_shape)
-    
     # Rescale coordinates
     if ratio_pad is None:  
         # Compute gain
