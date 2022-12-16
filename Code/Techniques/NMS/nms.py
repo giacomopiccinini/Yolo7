@@ -28,7 +28,7 @@ def non_max_suppression(
 
     # Select candidates that surpass a confidence threshold
     candidates = prediction[..., 4] > confidence_threshold
-    
+
     # Fix a few settings
 
     # Maximum box width and height in pixels
@@ -63,10 +63,10 @@ def non_max_suppression(
 
         # Extract boxes coordinates
         boxes_coordinates = boxes_features[:, :4]
-                
+
         # Create boxes converting from (center x, center y, width, height) to (x1, y1, x2, y2)
         boxes = xywh2xyxy(boxes_coordinates)
-        
+
         # Detections matrix n x 6 (xyxy, conf, cls)
         if multi_label:
 
@@ -80,7 +80,10 @@ def non_max_suppression(
 
             # Concatenate
             boxes_features = torch.cat(
-                (boxes[detection_index], boxes_features[detection_index, detected_class, None]),
+                (
+                    boxes[detection_index],
+                    boxes_features[detection_index, detected_class, None],
+                ),
                 detected_class[:, None].float(),
                 dim=1,
             )
@@ -89,7 +92,7 @@ def non_max_suppression(
 
             # Best class only
             confidences, detected_classes = boxes_features[:, 5:].max(1, keepdim=True)
-            
+
             # Concatenate
             boxes_features = torch.cat(
                 (boxes, confidences.float(), detected_classes), dim=1
@@ -98,7 +101,10 @@ def non_max_suppression(
         # Filter by class
         if classes is not None:
             boxes_features = boxes_features[
-                (boxes_features[:, 5:6] == torch.tensor(classes, device=boxes_features.device)).any(1)
+                (
+                    boxes_features[:, 5:6]
+                    == torch.tensor(classes, device=boxes_features.device)
+                ).any(1)
             ]
 
         # Fetch number of detected boxes
@@ -110,7 +116,9 @@ def non_max_suppression(
         # Else, if maximum number of boxes is achieved
         elif n_boxes > max_nms:
             # Sort boxes by confidence, and take the first max_nms
-            boxes_features = boxes_features[boxes_coordinates[:, 4].argsort(descending=True)[:max_nms]]
+            boxes_features = boxes_features[
+                boxes_coordinates[:, 4].argsort(descending=True)[:max_nms]
+            ]
 
         # Get classes
         c = boxes_features[:, 5:6] * (0 if agnostic else max_box_width_height)
@@ -123,7 +131,7 @@ def non_max_suppression(
 
         # Perform non-maximum suppression (NMS) on the boxes according to their intersection-over-union (IoU)
         i = torchvision.ops.nms(boxes, scores, iou_threshold)
-        
+
         # If too many detections
         if i.shape[0] > max_detections:
             # Restrict to allowed number
